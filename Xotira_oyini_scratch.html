@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Xotira o'yini: Dasturlash asoslari</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  /* Sinf proyektori uchun bitta yorug' mavzu: maydon o'rtada, guruh panellari tepada, boshqaruv pastda */
+  --bg:#F3F1F8; --surface:#FFFFFF; --ink:#24213A; --muted:#6B6785;
+  --hidden:#FFD9DC; --hidden-edge:#F2A8AF; --hidden-ink:#C2414F;
+  --open:#FFF4D2; --open-edge:#F1CF6E;
+  --g1:#23A35A; --g1-soft:#DDF5E6; --g2:#2D74DA; --g2-soft:#DCE8FB;
+  --wrong:#E0435A;
+  --font:"Rubik","Segoe UI",system-ui,Arial,sans-serif;
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{background:var(--bg);color:var(--ink);font-family:var(--font);display:flex;flex-direction:column;overflow:hidden}
+button,input,select{font-family:inherit}
+button{cursor:pointer}
+:focus-visible{outline:3px solid var(--ink);outline-offset:2px}
+
+.top{display:grid;grid-template-columns:1fr auto 1fr;gap:16px;align-items:stretch;padding:14px 18px 8px}
+.team{display:flex;align-items:center;gap:14px;padding:10px 16px;border-radius:16px;background:var(--surface);border:3px solid transparent;transition:transform .2s,box-shadow .2s,border-color .2s}
+.team .sw{width:18px;height:18px;border-radius:50%;flex:none}
+.team .nm{font-weight:700;font-size:clamp(16px,1.6vw,24px);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0}
+.team .sc{font-weight:800;font-size:clamp(26px,2.8vw,42px);font-variant-numeric:tabular-nums;min-width:1.4em;text-align:right}
+.team .tag{font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:4px 8px;border-radius:999px;color:#fff;visibility:hidden}
+.team.g1 .sw,.team.g1 .tag{background:var(--g1)} .team.g1 .sc{color:var(--g1)}
+.team.g2 .sw,.team.g2 .tag{background:var(--g2)} .team.g2 .sc{color:var(--g2)}
+.team.g2{flex-direction:row-reverse} .team.g2 .sc{text-align:left}
+.team.active.g1{border-color:var(--g1);background:var(--g1-soft);box-shadow:0 6px 18px #23a35a33;transform:translateY(-2px)}
+.team.active.g2{border-color:var(--g2);background:var(--g2-soft);box-shadow:0 6px 18px #2d74da33;transform:translateY(-2px)}
+.team.active .tag{visibility:visible}
+.mid{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:6px 18px;background:var(--surface);border-radius:16px;min-width:150px}
+.timer{font-size:clamp(20px,2vw,30px);font-weight:700;font-variant-numeric:tabular-nums}
+.found{font-size:13px;color:var(--muted)}
+
+main{flex:1;min-height:0;padding:8px 18px;display:flex}
+.grid{flex:1;display:grid;gap:clamp(8px,1vw,14px)}
+.card{position:relative;border-radius:16px;border:3px solid var(--hidden-edge);background:var(--hidden);color:var(--hidden-ink);display:flex;align-items:center;justify-content:center;text-align:center;padding:10px 12px;min-height:0;overflow:hidden;user-select:none;transition:transform .15s,background .25s,border-color .25s,color .25s}
+.card.hidden:hover{transform:translateY(-3px);box-shadow:0 8px 16px #c2414f22}
+.card .num{position:absolute;left:10px;top:7px;font-size:clamp(12px,1vw,16px);font-weight:700;opacity:.75}
+.card .q{font-size:clamp(36px,5vw,72px);font-weight:800;line-height:1}
+.card .txt{font-weight:600;line-height:1.25;overflow-wrap:anywhere;display:none}
+.card .kind{position:absolute;right:8px;top:7px;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:3px 8px;border-radius:999px;display:none}
+.card:not(.hidden) .q{display:none}
+.card:not(.hidden) .txt,.card:not(.hidden) .kind{display:block}
+.card.open{background:var(--open);border-color:var(--open-edge);color:var(--ink);animation:flip .3s ease}
+.card.open .kind{background:#fff;color:var(--muted)}
+.card.f1{background:var(--g1);border-color:#1B7F46;color:#fff}
+.card.f2{background:var(--g2);border-color:#1E5AAE;color:#fff}
+.card.f1 .kind,.card.f2 .kind{background:#ffffff33;color:#fff}
+.card.f1 .num,.card.f2 .num{opacity:.9}
+.card.bad{animation:shake .45s ease;border-color:var(--wrong)}
+.card.found{cursor:default}
+@keyframes flip{from{transform:rotateY(90deg)}to{transform:none}}
+@keyframes shake{0%,100%{transform:none}20%,60%{transform:translateX(-6px)}40%,80%{transform:translateX(6px)}}
+@media (prefers-reduced-motion:reduce){.card,.team{transition:none!important;animation:none!important}}
+
+.bar{display:flex;align-items:center;gap:10px;padding:8px 18px 14px}
+.bar .sp{flex:1}
+.btn{display:inline-flex;align-items:center;gap:8px;border:0;border-radius:12px;padding:10px 16px;font-size:15px;font-weight:600;background:var(--surface);color:var(--ink);box-shadow:0 2px 6px #24213a14}
+.btn:hover{background:#ECE9F6}
+.btn.primary{background:var(--ink);color:#fff} .btn.primary:hover{background:#3b3760}
+.btn svg{width:20px;height:20px}
+.status{font-size:clamp(15px,1.3vw,19px);font-weight:600;color:var(--muted);text-align:center}
+
+.modal{position:fixed;inset:0;background:#24213a80;display:none;align-items:center;justify-content:center;padding:16px;z-index:10}
+.modal.show{display:flex}
+.box{background:var(--surface);border-radius:20px;padding:24px 26px;width:min(560px,100%);max-height:90%;overflow:auto;box-shadow:0 20px 50px #0003}
+.box h2{margin:0 0 4px;font-size:24px;text-wrap:balance}
+.box p.sub{margin:0 0 18px;color:var(--muted)}
+.field{display:flex;flex-direction:column;gap:6px;margin-bottom:14px}
+.field label{font-weight:600;font-size:14px}
+.field input,.field select{width:100%;min-width:0;font-size:16px;padding:10px 12px;border:2px solid #DAD6E8;border-radius:10px;background:#fff;color:var(--ink)}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.pairs{border:0;padding:0;margin:0 0 14px;display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.pairs legend{font-weight:600;font-size:14px;margin-bottom:6px;padding:0}
+.opt{position:relative;cursor:pointer}
+.opt input{position:absolute;opacity:0;inset:0}
+.opt span{display:flex;flex-direction:column;align-items:center;gap:2px;padding:14px;border:2px solid #DAD6E8;border-radius:14px;font-size:14px;color:var(--muted);transition:border-color .15s,background .15s}
+.opt b{font-size:20px;color:var(--ink)}
+.opt input:checked+span{border-color:var(--ink);background:#EFEDF7;box-shadow:inset 0 0 0 1px var(--ink)}
+.opt input:focus-visible+span{outline:3px solid var(--ink);outline-offset:2px}
+.err{color:var(--wrong);font-size:14px;font-weight:600;min-height:1.2em;margin:-6px 0 10px}
+.chk{display:flex;gap:10px;align-items:flex-start;font-size:14px;margin:4px 0 18px}
+.chk input{width:18px;height:18px;margin-top:1px}
+.actions{display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap}
+.dot1,.dot2{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px}
+.dot1{background:var(--g1)} .dot2{background:var(--g2)}
+.legend{display:flex;gap:16px;flex-wrap:wrap;font-size:13px;color:var(--muted);margin-bottom:18px}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend i{width:14px;height:14px;border-radius:4px;display:inline-block}
+.res{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:16px 0 20px}
+.res div{border-radius:14px;padding:14px;text-align:center}
+.res b{display:block;font-size:40px;font-variant-numeric:tabular-nums}
+.res .r1{background:var(--g1-soft);color:#17703E} .res .r2{background:var(--g2-soft);color:#1E5AAE}
+.bank{width:100%;border-collapse:collapse;font-size:14px}
+.bank td,.bank th{border-bottom:1px solid #ECE9F6;padding:7px 6px;text-align:left;vertical-align:top}
+.bank th{font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
+.bank td:first-child{color:var(--muted);font-variant-numeric:tabular-nums;width:2.5em}
+@media (max-width:700px){.top{grid-template-columns:1fr 1fr}.mid{grid-column:1/-1;order:-1}.bar{flex-wrap:wrap}.row{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="team g1 active" id="t1"><span class="sw"></span><span class="nm" id="n1">1-guruh</span><span class="tag">Navbat</span><span class="sc" id="s1">0</span></div>
+  <div class="mid"><div class="timer" id="timer">00:00</div><div class="found" id="found">Topildi: 0 / 4</div></div>
+  <div class="team g2" id="t2"><span class="sw"></span><span class="nm" id="n2">2-guruh</span><span class="tag">Navbat</span><span class="sc" id="s2">0</span></div>
+</header>
+<main><div class="grid" id="grid" aria-live="polite"></div></main>
+<footer class="bar">
+  
+  <button class="btn" id="bBank" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V3H6.5A2.5 2.5 0 0 0 4 5.5z"/><path d="M4 19.5A2.5 2.5 0 0 0 6.5 22H20v-5"/></svg>Savollar bazasi</button>
+  <div class="sp status" id="status">Guruhlarga nom bering va o'yinni boshlang</div>
+  <button class="btn" id="bSnd" type="button" aria-pressed="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 5 6 9H2v6h4l5 4z"/><path id="wave" d="M15.5 8.5a5 5 0 0 1 0 7M19 5a10 10 0 0 1 0 14"/></svg><span id="sndTxt">Ovoz: yoniq</span></button>
+  <button class="btn" id="bFull" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3H5a2 2 0 0 0-2 2v3M21 8V5a2 2 0 0 0-2-2h-3M3 16v3a2 2 0 0 0 2 2h3M16 21h3a2 2 0 0 0 2-2v-3"/></svg>To'liq ekran</button>
+  <button class="btn primary" id="bNew" type="button">Yangi o'yin</button>
+</footer>
+
+<div class="modal" id="mSet" role="dialog" aria-modal="true" aria-labelledby="hSet"><form class="box" id="fSet">
+  <h2 id="hSet">Yangi o'yin</h2>
+  <p class="sub">Guruhlarga nom bering va kataklar sonini tanlang. Savollar 50 ta savollik bazadan tasodifiy olinadi, kataklar aralashtiriladi.</p>
+  <div class="row">
+    <div class="field"><label for="iN1"><span class="dot1"></span>1-guruh nomi</label><input id="iN1" maxlength="24" required placeholder="Masalan: Algoritmlar" autocomplete="off"></div>
+    <div class="field"><label for="iN2"><span class="dot2"></span>2-guruh nomi</label><input id="iN2" maxlength="24" required placeholder="Masalan: Dasturchilar" autocomplete="off"></div>
+  </div>
+  <fieldset class="pairs"><legend>Kataklar soni</legend>
+    <label class="opt"><input type="radio" name="pairs" id="iP8" value="4"><span><b>8 ta katak</b>4 ta savol</span></label>
+    <label class="opt"><input type="radio" name="pairs" id="iP12" value="6"><span><b>12 ta katak</b>6 ta savol</span></label>
+  </fieldset>
+  <div class="field"><label for="iFirst">Birinchi navbat</label><select id="iFirst">
+      <option value="0">1-guruh</option><option value="1">2-guruh</option><option value="r">Tasodifiy</option></select></div>
+  <label class="chk"><input type="checkbox" id="iKeep" checked><span>Juftlikni topgan guruh navbatni o'zida saqlab qoladi (o'chirilsa, navbat har safar almashadi)</span></label>
+  <div class="legend">
+    <span><i style="background:var(--hidden);border:2px solid var(--hidden-edge)"></i>Hali topilmagan</span>
+    <span><i style="background:var(--open);border:2px solid var(--open-edge)"></i>Ochilgan</span>
+    <span><i style="background:var(--g1)"></i>1-guruh topgan</span>
+    <span><i style="background:var(--g2)"></i>2-guruh topgan</span>
+  </div>
+  <div class="err" id="err" role="alert"></div>
+  <div class="actions"><button class="btn" type="button" id="bCancel">Bekor qilish</button><button class="btn primary" type="submit">O'yinni boshlash</button></div>
+</form></div>
+
+<div class="modal" id="mEnd" role="dialog" aria-modal="true" aria-labelledby="hEnd"><div class="box" style="text-align:center">
+  <h2 id="hEnd">G'olib!</h2><p class="sub" id="endSub"></p>
+  <div class="res"><div class="r1"><span id="e1"></span><b id="es1">0</b></div><div class="r2"><span id="e2"></span><b id="es2">0</b></div></div>
+  <div class="actions" style="justify-content:center"><button class="btn" type="button" id="bClose">Maydonni ko'rish</button><button class="btn primary" type="button" id="bAgain">Yangi o'yin</button></div>
+</div></div>
+
+<div class="modal" id="mBank" role="dialog" aria-modal="true" aria-labelledby="hBank"><div class="box" style="width:min(820px,100%)">
+  <h2 id="hBank">Savollar bazasi (50 ta)</h2><p class="sub">Har o'yinda shu ro'yxatdan tasodifiy savollar olinadi. Har bir savol kartasining juftligi uning javob kartasi.</p>
+  <table class="bank"><thead><tr><th>№</th><th>Savol</th><th>Javob</th></tr></thead><tbody id="bankBody"></tbody></table>
+  <div class="actions" style="margin-top:16px"><button class="btn primary" type="button" id="bBankClose">Yopish</button></div>
+</div></div>
+
+<script>
+const BANK = [{"q": "Kompyuter tushunadigan tilda yozilgan algoritm nima deyiladi?", "a": "Dastur"}, {"q": "Scratchda buyruqlarni bajaradigan qahramon nima deyiladi?", "a": "Sprayt"}, {"q": "Sprayt harakatlanadigan va dastur natijasi ko'rinadigan maydon?", "a": "Sahna"}, {"q": "Bir-biriga ulangan bloklar to'plami nima deyiladi?", "a": "Skript"}, {"q": "Skriptni ishga tushiradigan signal qaysi tushuncha?", "a": "Hodisa"}, {"q": "Buyruqlarning yuqoridan pastga tartib bilan bajarilishi?", "a": "Ketma-ketlik"}, {"q": "Bir xil buyruqlarni bir necha marta bajarish nima deyiladi?", "a": "Takrorlash (sikl)"}, {"q": "Faqat ma'lum holat to'g'ri bo'lsa ish bajariladigan tuzilma?", "a": "Shart"}, {"q": "Qiymati o'zgarib turadigan nomli xotira katagi?", "a": "O'zgaruvchi"}, {"q": "\"Algoritm\" so'zi qaysi buyuk olimning nomidan kelib chiqqan?", "a": "Al-Xorazmiy"}, {"q": "Algoritmni bajaruvchi inson, robot yoki qurilma?", "a": "Ijrochi"}, {"q": "Ijrochiga bitta amalni bajarishni bildiruvchi ko'rsatma?", "a": "Buyruq"}, {"q": "Scratchni qaysi oliy o'quv yurti yaratgan?", "a": "MIT (Massachusets texnologiya instituti)"}, {"q": "Scratch sahnasining o'lchami qancha?", "a": "480 x 360"}, {"q": "Kvadrat chizish uchun har burchakda necha gradus burilish kerak?", "a": "90 gradus"}, {"q": "Teng tomonli uchburchak chizish uchun necha gradus burilish kerak?", "a": "120 gradus"}, {"q": "Muntazam oltiburchak chizish uchun necha gradus burilish kerak?", "a": "60 gradus"}, {"q": "Kvadrat chizish uchun \"takrorla\" blokiga qaysi son yoziladi?", "a": "4"}, {"q": "Cheksiz takrorlaydigan blok qanday nomlanadi?", "a": "\"doimo\" bloki"}, {"q": "Harakat bloklari qaysi rangda?", "a": "Ko'k"}, {"q": "Hodisalar bloklari qaysi rangda?", "a": "Sariq"}, {"q": "Ko'rinish bloklari qaysi rangda?", "a": "Binafsha"}, {"q": "Operatorlar bloklari qaysi rangda?", "a": "Yashil"}, {"q": "Dasturni ishga tushirish uchun sahna ustidagi qaysi tugma bosiladi?", "a": "Yashil bayroq"}, {"q": "Ishlab turgan dasturni to'xtatadigan tugma?", "a": "Qizil to'xtatish tugmasi"}, {"q": "Scratch loyiha fayli qanday kengaytmaga ega?", "a": ".sb3"}, {"q": "Dasturdagi xatoni topish va tuzatish jarayoni?", "a": "Debugging (xatoni tuzatish)"}, {"q": "\"agar ... bo'lsa\" bloki qaysi kategoriyada joylashgan?", "a": "Boshqaruv"}, {"q": "\"chetga tegyaptimi?\" bloki qaysi kategoriyada joylashgan?", "a": "Sezish"}, {"q": "Spraytni gapirtiradigan blok qaysi?", "a": "\"ayt\" bloki"}, {"q": "takrorla 3 [100 qadam yur, 120 gradus buril] qanday shakl chizadi?", "a": "Uchburchak"}, {"q": "takrorla 4 [100 qadam yur, 90 gradus buril] qanday shakl chizadi?", "a": "Kvadrat"}, {"q": "Sahnada chizish uchun qaysi kengaytma qo'shiladi?", "a": "Qalam"}, {"q": "Spraytning tashqi ko'rinishlari qaysi yorliqda tahrirlanadi?", "a": "Kostyumlar"}, {"q": "Dastur yoziladigan maxsus til nima deyiladi?", "a": "Dasturlash tili"}, {"q": "Dastur yozish jarayoni nima deyiladi?", "a": "Dasturlash"}, {"q": "Buyruqlari birin-ketin, tartib bilan bajariladigan algoritm turi?", "a": "Chiziqli algoritm"}, {"q": "Shartga qarab turli yo'llardan biri tanlanadigan algoritm turi?", "a": "Tarmoqlanuvchi algoritm"}, {"q": "Algoritmning geometrik shakllar yordamidagi tasviri?", "a": "Blok-sxema"}, {"q": "Spraytni sahna markaziga qaytaradigan koordinatalar?", "a": "x: 0, y: 0"}, {"q": "\"10 qadam yur\" bloki 3 marta bajarilsa, sprayt jami necha qadam yuradi?", "a": "30 qadam"}, {"q": "takrorla 5 [20 qadam yur] bajarilganda sprayt jami necha qadam yuradi?", "a": "100 qadam"}, {"q": "Ovoz chiqaradigan bloklar kategoriyasi qanday nomlanadi?", "a": "Tovush"}, {"q": "Scratch matnli emas, qanday dasturlash tili?", "a": "Vizual (blokli) til"}, {"q": "Spraytni sahnaning ixtiyoriy joyiga ko'chiradigan blok?", "a": "\"tasodifiy joyga o't\" bloki"}, {"q": "Bir sprayt boshqa spraytlarga signal yuborishi uchun qaysi blok ishlatiladi?", "a": "\"xabar yubor\" bloki"}, {"q": "Sprayt sichqoncha bilan bosilganda ishga tushadigan hodisa bloki?", "a": "\"shu sprayt bosilganda\""}, {"q": "Sahnadagi gorizontal (chapdan o'ngga) koordinata qaysi harf bilan belgilanadi?", "a": "x"}, {"q": "Sahnadagi vertikal (pastdan yuqoriga) koordinata qaysi harf bilan belgilanadi?", "a": "y"}, {"q": "Sprayt yo'nalishi 90 bo'lsa, u qaysi tomonga qaraydi?", "a": "O'ngga"}];
+const $ = id => document.getElementById(id);
+const store = { get(k,d){ try{ const v=localStorage.getItem(k); return v===null?d:JSON.parse(v);}catch(e){return d;} }, set(k,v){ try{localStorage.setItem(k,JSON.stringify(v));}catch(e){} } };
+const cfg = Object.assign({n1:"", n2:"", pairs:4, first:"0", keep:true}, store.get("xo-cfg",{}));
+if(cfg.pairs!==4&&cfg.pairs!==6) cfg.pairs=4;
+let ready=false;
+let S, tick=null, sound=true, actx=null;
+
+function shuffle(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
+function fmt(t){ const m=Math.floor(t/60), s=t%60; return String(m).padStart(2,"0")+":"+String(s).padStart(2,"0"); }
+
+function beep(kind){
+  if(!sound) return;
+  try{
+    actx = actx || new (window.AudioContext||window.webkitAudioContext)();
+    const seq = {flip:[[520,.06]], ok:[[660,.1],[880,.16]], bad:[[260,.12],[200,.18]], win:[[523,.12],[659,.12],[784,.12],[1046,.3]]}[kind];
+    let t = actx.currentTime;
+    for(const [f,d] of seq){ const o=actx.createOscillator(), g=actx.createGain(); o.type=kind==="bad"?"square":"sine"; o.frequency.value=f;
+      g.gain.setValueAtTime(.0001,t); g.gain.exponentialRampToValueAtTime(.18,t+.01); g.gain.exponentialRampToValueAtTime(.0001,t+d);
+      o.connect(g).connect(actx.destination); o.start(t); o.stop(t+d+.02); t+=d*0.9; }
+  }catch(e){}
+}
+
+function layout(n){ // n = kataklar soni
+  const cols = {8:4,12:4,16:4,20:5,24:6}[n] || Math.ceil(Math.sqrt(n));
+  const rows = Math.ceil(n/cols);
+  const g=$("grid"); g.style.gridTemplateColumns=`repeat(${cols},1fr)`; g.style.gridTemplateRows=`repeat(${rows},1fr)`;
+}
+function sizeText(el,text){
+  const L=text.length;
+  const v = L<=6?3.2:L<=14?2.3:L<=28?1.75:L<=50?1.45:1.2;
+  const px = L<=6?54:L<=14?38:L<=28?28:L<=50?23:19;
+  el.style.fontSize=`clamp(13px, ${v}vw, ${px}px)`;
+}
+
+function newGame(){
+  clearInterval(tick);
+  const pick = shuffle(BANK.map((x,i)=>i)).slice(0,cfg.pairs);
+  const cards=[];
+  pick.forEach((bi,p)=>{ cards.push({p,k:"q",t:BANK[bi].q}); cards.push({p,k:"a",t:BANK[bi].a}); });
+  shuffle(cards);
+  const first = cfg.first==="r" ? (Math.random()<.5?0:1) : +cfg.first;
+  S={cards, open:[], lock:false, turn:first, score:[0,0], found:0, sec:0, started:false, over:false};
+  const g=$("grid"); g.innerHTML="";
+  cards.forEach((c,i)=>{
+    const b=document.createElement("button"); b.type="button"; b.className="card hidden"; b.dataset.i=i;
+    b.setAttribute("aria-label",`${i+1}-katak, yopiq`);
+    b.innerHTML=`<span class="num">${i+1}</span><span class="q">?</span><span class="kind">${c.k==="q"?"Savol":"Javob"}</span><span class="txt"></span>`;
+    const tx=b.querySelector(".txt"); tx.textContent=c.t; sizeText(tx,c.t);
+    b.addEventListener("click",()=>flip(i));
+    c.el=b; g.appendChild(b);
+  });
+  layout(cards.length);
+  $("timer").textContent="00:00";
+  render();
+}
+function startClock(){ if(S.started) return; S.started=true; tick=setInterval(()=>{ S.sec++; $("timer").textContent=fmt(S.sec); },1000); }
+
+function render(){
+  $("n1").textContent=cfg.n1||"1-guruh"; $("n2").textContent=cfg.n2||"2-guruh";
+  $("s1").textContent=S.score[0]; $("s2").textContent=S.score[1];
+  $("t1").classList.toggle("active",S.turn===0&&!S.over); $("t2").classList.toggle("active",S.turn===1&&!S.over);
+  $("found").textContent=`Topildi: ${S.found} / ${cfg.pairs}`;
+  const nm = (S.turn===0?cfg.n1:cfg.n2)||(S.turn+1)+"-guruh";
+  if(!S.over) $("status").textContent = S.open.length===1 ? `${nm}: ikkinchi katakni tanlang` : `Navbat: ${nm}. Ikkita katakni oching`;
+}
+
+function flip(i){
+  if(S.lock||S.over) return;
+  const c=S.cards[i];
+  if(!c.el.classList.contains("hidden")) return;
+  startClock();
+  c.el.classList.remove("hidden"); c.el.classList.add("open");
+  c.el.setAttribute("aria-label",`${i+1}-katak: ${c.k==="q"?"savol":"javob"}: ${c.t}`);
+  S.open.push(i); beep("flip");
+  if(S.open.length<2){ render(); return; }
+  S.lock=true;
+  const [a,b]=S.open.map(j=>S.cards[j]);
+  if(a.p===b.p && a.k!==b.k){
+    setTimeout(()=>{
+      const cls = S.turn===0?"f1":"f2";
+      for(const x of [a,b]){ x.el.classList.remove("open"); x.el.classList.add(cls,"found"); x.el.disabled=true; }
+      S.score[S.turn]++; S.found++; S.open=[]; S.lock=false; beep("ok");
+      if(S.found===cfg.pairs){ finish(); return; }
+      if(!cfg.keep) S.turn=1-S.turn;
+      render();
+    },650);
+  } else {
+    setTimeout(()=>{ for(const x of [a,b]) x.el.classList.add("bad"); beep("bad"); },700);
+    setTimeout(()=>{
+      for(const x of [a,b]){ x.el.classList.remove("open","bad"); x.el.classList.add("hidden"); }
+      S.cards.forEach((x,j)=>{ if(x.el.classList.contains("hidden")) x.el.setAttribute("aria-label",`${j+1}-katak, yopiq`); });
+      S.open=[]; S.lock=false; S.turn=1-S.turn; render();
+    },2000);
+  }
+  render();
+}
+
+function finish(){
+  S.over=true; clearInterval(tick); render(); beep("win");
+  const [x,y]=S.score;
+  $("hEnd").textContent = x===y ? "Durang!" : `G'olib: ${x>y?cfg.n1:cfg.n2}`;
+  $("endSub").textContent = `Barcha ${cfg.pairs} ta juftlik ${fmt(S.sec)} da topildi.`;
+  $("e1").textContent=cfg.n1; $("e2").textContent=cfg.n2; $("es1").textContent=x; $("es2").textContent=y;
+  $("status").textContent = x===y ? "O'yin durang bilan tugadi" : `${x>y?cfg.n1:cfg.n2} guruhi g'olib bo'ldi`;
+  setTimeout(()=>open("mEnd"),700);
+}
+
+function open(id){ $(id).classList.add("show"); }
+function close(id){ $(id).classList.remove("show"); }
+function openSettings(){ $("iN1").value=cfg.n1; $("iN2").value=cfg.n2; $(cfg.pairs===6?"iP12":"iP8").checked=true; $("iFirst").value=cfg.first; $("iKeep").checked=cfg.keep; $("err").textContent=""; $("bCancel").style.display=ready?"":"none"; open("mSet"); setTimeout(()=>$("iN1").focus(),50); }
+
+$("fSet").addEventListener("submit",e=>{ e.preventDefault();
+  const a=$("iN1").value.trim(), b=$("iN2").value.trim();
+  if(!a||!b){ $("err").textContent="Ikkala guruhga ham nom bering."; (a?$("iN2"):$("iN1")).focus(); return; }
+  if(a.toLowerCase()===b.toLowerCase()){ $("err").textContent="Guruh nomlari har xil bo'lishi kerak."; $("iN2").focus(); return; }
+  cfg.n1=a; cfg.n2=b; ready=true;
+  cfg.pairs=$("iP12").checked?6:4; cfg.first=$("iFirst").value; cfg.keep=$("iKeep").checked;
+  store.set("xo-cfg",cfg); close("mSet"); newGame(); });
+$("bCancel").onclick=()=>{ if(ready) close("mSet"); };
+$("bNew").onclick=openSettings; $("bAgain").onclick=()=>{ close("mEnd"); openSettings(); }; $("bClose").onclick=()=>close("mEnd");
+$("bBank").onclick=()=>open("mBank"); $("bBankClose").onclick=()=>close("mBank");
+$("bSnd").onclick=()=>{ sound=!sound; $("sndTxt").textContent="Ovoz: "+(sound?"yoniq":"o'chiq"); $("wave").style.display=sound?"":"none"; $("bSnd").setAttribute("aria-pressed",sound); };
+$("bFull").onclick=()=>{ try{ if(document.fullscreenElement) document.exitFullscreen().catch(()=>{}); else document.documentElement.requestFullscreen().catch(()=>{}); }catch(e){} };
+document.addEventListener("keydown",e=>{ if(e.key==="Escape"){ ["mEnd","mBank"].forEach(close); if(ready) close("mSet"); } });
+$("bankBody").innerHTML = BANK.map((x,i)=>`<tr><td>${i+1}</td><td></td><td></td></tr>`).join("");
+[...$("bankBody").rows].forEach((r,i)=>{ r.cells[1].textContent=BANK[i].q; r.cells[2].textContent=BANK[i].a; });
+newGame();
+openSettings();
+</script>
+</body>
+</html>
